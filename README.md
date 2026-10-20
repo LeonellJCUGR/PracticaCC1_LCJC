@@ -19,7 +19,7 @@ Aplicación Nativa de la Nube (*Cloud-Native Application*) para una pequeña emp
 
 ### Problema de negocio
 
-Una pequeña empresa turística gestiona la venta de entradas a varios atractivos de su zona. Hoy lo hace de forma manual (taquilla + hojas de cálculo),
+Una pequeña empresa turística gestiona la venta de entradas a varios atractivos de su zona. Hoy lo hace de forma manual (taquilla y hojas de cálculo),
 lo que provoca tres problemas:
 
 1. **Sobreventa**: no hay control en tiempo real del aforo diario de cada atractivo, por lo que se venden más entradas de las permitidas.
@@ -32,13 +32,13 @@ lo que provoca tres problemas:
 
 ### Lógica de negocio
 
-| Regla                          | Descripción                                                                                                                                                                                |
-|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Regla | Descripción |
+|---|---|
 | **RN-01 Precio por temporada** | `precio_unitario = precio_base × (1 − descuento / 100)`. Si en una fecha coinciden varias temporadas, se aplica la de **mayor descuento**. Sin temporada vigente, se cobra el precio base. |
-| **RN-02 Control de aforo**     | Una compra solo se confirma si `entradas_vendidas(atracción, fecha) + cantidad ≤ aforo_diario`.                                                                                            |
-| **RN-03 Fechas válidas**       | No se pueden comprar entradas para fechas pasadas ni con más de 90 días de antelación. Máximo 10 entradas por compra.                                                                      |
-| **RN-04 Cancelación**          | Una reserva `CONFIRMADA` puede cancelarse hasta **24 h antes** de la fecha de visita; las plazas vuelven al aforo disponible.                                                              |
-| **RN-05 Validación de acceso** | Cada reserva tiene un código único. Solo puede validarse el **día de la visita** y **una única vez** (pasa a estado `USADA`).                                                              |
+| **RN-02 Control de aforo** | Una compra solo se confirma si `entradas_vendidas(atracción, fecha) + cantidad ≤ aforo_diario`. |
+| **RN-03 Fechas válidas** | No se pueden comprar entradas para fechas pasadas ni con más de 90 días de antelación. Máximo 10 entradas por compra. |
+| **RN-04 Cancelación** | Una reserva `CONFIRMADA` puede cancelarse hasta **24 h antes** de la fecha de visita; las plazas vuelven al aforo disponible. |
+| **RN-05 Validación de acceso** | Cada reserva tiene un código único. Solo puede validarse el **día de la visita** y **una única vez** (pasa a estado `USADA`). |
 
 Ciclo de vida de una reserva:
 
