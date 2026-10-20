@@ -12,7 +12,6 @@ Aplicación Nativa de la Nube (*Cloud-Native Application*) para una pequeña emp
 4. [Mapeo de actores NIST SP 500-292](#4-mapeo-de-actores-nist-sp-500-292)
 5. [Arquitectura de referencia](#5-arquitectura-de-referencia)
 6. [Especificación de la API REST](#6-especificación-de-la-api-rest)
-7. [Gestión del proyecto y flujo de trabajo](#7-gestión-del-proyecto-y-flujo-de-trabajo)
 
 ---
 
