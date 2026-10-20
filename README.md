@@ -1,8 +1,6 @@
 # RutaTicket — Venta de entradas para atractivos turísticos
 
-Aplicación Nativa de la Nube (*Cloud-Native Application*) para una pequeña empresa turística que vende entradas para visitar atractivos turísticos (miradores, rutas guiadas, monumentos, museos), con **precios por temporada** (descuentos en temporada baja o campañas especiales) y **control de aforo diario**.
-
-Proyecto del curso *Cloud Computing: Fundamentos e Infraestructuras* (MII — ETSIIT, Universidad de Granada - Maestría en Ingeniería Informática). Desplegado sobre **Microsoft Azure**.
+Aplicación Nativa de la Nube (*Cloud-Native Application*) para una pequeña empresa turística que vende entradas para visitar atractivos turísticos (miradores, rutas guiadas, monumentos, museos), con **precios por temporada** (descuentos en temporada baja o campañas especiales) y **control de aforo diario**. Desplegado sobre **Microsoft Azure**.
 
 ---
 
@@ -14,7 +12,6 @@ Proyecto del curso *Cloud Computing: Fundamentos e Infraestructuras* (MII — ET
 4. [Mapeo de actores NIST SP 500-292](#4-mapeo-de-actores-nist-sp-500-292)
 5. [Arquitectura de referencia](#5-arquitectura-de-referencia)
 6. [Especificación de la API REST](#6-especificación-de-la-api-rest)
-7. [Gestión del proyecto y flujo de trabajo](#7-gestión-del-proyecto-y-flujo-de-trabajo)
 
 ---
 
@@ -22,7 +19,7 @@ Proyecto del curso *Cloud Computing: Fundamentos e Infraestructuras* (MII — ET
 
 ### Problema de negocio
 
-Una pequeña empresa turística gestiona la venta de entradas a varios atractivos de su zona. Hoy lo hace de forma manual (taquilla + hojas de cálculo),
+Una pequeña empresa turística gestiona la venta de entradas a varios atractivos de su zona. Hoy lo hace de forma manual (taquilla y hojas de cálculo),
 lo que provoca tres problemas:
 
 1. **Sobreventa**: no hay control en tiempo real del aforo diario de cada atractivo, por lo que se venden más entradas de las permitidas.
@@ -33,15 +30,15 @@ lo que provoca tres problemas:
 
 **RutaTicket** permite consultar atractivos, calcular el precio final según la fecha de visita (aplicando automáticamente el descuento de temporada vigente), comprar entradas sin superar el aforo diario, cancelarlas con antelación y validarlas en la puerta mediante un código único.
 
-### Lógica de negocio (más allá de un CRUD)
+### Lógica de negocio
 
-| Regla                          | Descripción                                                                                                                                                                                |
-|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Regla | Descripción |
+|---|---|
 | **RN-01 Precio por temporada** | `precio_unitario = precio_base × (1 − descuento / 100)`. Si en una fecha coinciden varias temporadas, se aplica la de **mayor descuento**. Sin temporada vigente, se cobra el precio base. |
-| **RN-02 Control de aforo**     | Una compra solo se confirma si `entradas_vendidas(atracción, fecha) + cantidad ≤ aforo_diario`.                                                                                            |
-| **RN-03 Fechas válidas**       | No se pueden comprar entradas para fechas pasadas ni con más de 90 días de antelación. Máximo 10 entradas por compra.                                                                      |
-| **RN-04 Cancelación**          | Una reserva `CONFIRMADA` puede cancelarse hasta **24 h antes** de la fecha de visita; las plazas vuelven al aforo disponible.                                                              |
-| **RN-05 Validación de acceso** | Cada reserva tiene un código único. Solo puede validarse el **día de la visita** y **una única vez** (pasa a estado `USADA`).                                                              |
+| **RN-02 Control de aforo** | Una compra solo se confirma si `entradas_vendidas(atracción, fecha) + cantidad ≤ aforo_diario`. |
+| **RN-03 Fechas válidas** | No se pueden comprar entradas para fechas pasadas ni con más de 90 días de antelación. Máximo 10 entradas por compra. |
+| **RN-04 Cancelación** | Una reserva `CONFIRMADA` puede cancelarse hasta **24 h antes** de la fecha de visita; las plazas vuelven al aforo disponible. |
+| **RN-05 Validación de acceso** | Cada reserva tiene un código único. Solo puede validarse el **día de la visita** y **una única vez** (pasa a estado `USADA`). |
 
 Ciclo de vida de una reserva:
 
