@@ -45,7 +45,7 @@ lo que provoca tres problemas:
 
 Ciclo de vida de una reserva:
 
-(IMAGEN_3)
+![alt text](CicloVidaReserva.png)
 
 
 ## 2. Casos de uso principales
@@ -102,7 +102,7 @@ La aplicación se divide en **2 microservicios independientes** con su propia ba
 
 ### Diagrama
 
-(IMAGEN_1)
+![alt text](ArquitecturaDeNegocio.png)
 
 ### Protocolos de comunicación
 
@@ -115,7 +115,7 @@ La aplicación se divide en **2 microservicios independientes** con su propia ba
 
 **Flujo de compra (CU-04):**
 
-(IMAGEN_2)
+![alt text](FlujoCompras.png)
 
 ### Decisiones clave
 
