@@ -31,7 +31,7 @@ lo que provoca tres problemas:
 
 **RutaTicket** permite consultar atractivos, calcular el precio final según la fecha de visita (aplicando automáticamente el descuento de temporada vigente), comprar entradas sin superar el aforo diario, cancelarlas con antelación y validarlas en la puerta mediante un código único.
 
-### Lógica de negocio (más allá de un CRUD)
+### Lógica de negocio
 
 | Regla                          | Descripción                                                                                                                                                                                |
 |--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
