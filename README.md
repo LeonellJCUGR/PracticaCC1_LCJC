@@ -1,8 +1,6 @@
 # RutaTicket — Venta de entradas para atractivos turísticos
 
-Aplicación Nativa de la Nube (*Cloud-Native Application*) para una pequeña empresa turística que vende entradas para visitar atractivos turísticos (miradores, rutas guiadas, monumentos, museos), con **precios por temporada** (descuentos en temporada baja o campañas especiales) y **control de aforo diario**.
-
-Proyecto del curso *Cloud Computing: Fundamentos e Infraestructuras* (MII — ETSIIT, Universidad de Granada - Maestría en Ingeniería Informática). Desplegado sobre **Microsoft Azure**.
+Aplicación Nativa de la Nube (*Cloud-Native Application*) para una pequeña empresa turística que vende entradas para visitar atractivos turísticos (miradores, rutas guiadas, monumentos, museos), con **precios por temporada** (descuentos en temporada baja o campañas especiales) y **control de aforo diario**. Desplegado sobre **Microsoft Azure**.
 
 ---
 
