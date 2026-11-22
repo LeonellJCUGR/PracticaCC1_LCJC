@@ -1,0 +1,7 @@
+# Solo app/ y requirements.txt forman parte de la imagen
+**
+!app
+!app/**
+!requirements.txt
+**/__pycache__
+**/*.py[cod]
