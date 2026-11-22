@@ -55,3 +55,6 @@ k6-results*.json
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ---------- SQLite de desarrollo ----------
+*.db
