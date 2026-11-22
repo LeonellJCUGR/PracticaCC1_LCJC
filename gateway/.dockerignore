@@ -1,0 +1,4 @@
+# Solo la configuración de NGINX forma parte de la imagen
+**
+!nginx
+!nginx/**
