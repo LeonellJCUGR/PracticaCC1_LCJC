@@ -434,3 +434,9 @@ En el Hito 2, `feat` contiene los commits agrupados por servicio, enlazados con 
 | `ci` | Workflow de GitHub Actions y configuración de linters | #4 |
 | `refactor` | Mejora de la redacción de los comentarios | #4 |
 | `fix(docker)` | Imagen base con versión explícita en cada `FROM` (hadolint DL3006) | #4 |
+
+### Evidencias
+
+Las capturas de las pruebas del Hito 2 (contenedores en ejecución, Swagger a través del API Gateway, reglas de negocio, tests, CI, imágenes publicadas en GHCR y release `v0.2.0`) están recogidas en este documento:
+
+- [Evidencias del Hito 2 (archivo PDF en Google Drive)](https://drive.google.com/file/d/1RlEHt-9yENhLUPrRDFIwGP44rWWtwOtw/view?usp=sharing)
