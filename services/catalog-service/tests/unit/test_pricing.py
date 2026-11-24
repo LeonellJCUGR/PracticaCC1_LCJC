@@ -1,4 +1,4 @@
-"""Pruebas unitarias de RN-01 (lógica pura, sin BD ni HTTP)."""
+"""Pruebas unitarias de RN-01 (solo la lógica, sin BD ni HTTP)."""
 
 from __future__ import annotations
 

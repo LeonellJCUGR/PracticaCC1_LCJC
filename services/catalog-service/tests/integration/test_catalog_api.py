@@ -10,7 +10,7 @@ def test_health(client):
     assert client.get("/health/ready").status_code == 200
 
 
-# ---------- Atracciones (CU-01, CU-03) ----------
+# Atracciones (CU-01, CU-03)
 
 
 def test_crear_atraccion_devuelve_201(mirador):
@@ -60,7 +60,7 @@ def test_modificar_inexistente_404(client):
     assert client.put("/api/v1/atracciones/42", json=cuerpo).status_code == 404
 
 
-# ---------- Temporadas (CU-02) ----------
+# Temporadas (CU-02)
 
 INVIERNO = {
     "nombre": "Temporada baja invierno",
@@ -90,7 +90,7 @@ def test_temporada_con_descuento_invalido_422(client):
         assert client.post("/api/v1/temporadas", json=cuerpo).status_code == 422
 
 
-# ---------- Precios (RN-01) ----------
+# Precios (RN-01)
 
 
 def test_precio_ejemplo_readme(client, mirador):

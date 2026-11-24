@@ -10,7 +10,7 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app import __version__, models
+from app import __version__, models  # noqa: F401  (importa los modelos para registrar las tablas)
 from app.catalog_client import CatalogClient
 from app.config import get_settings
 from app.database import Database

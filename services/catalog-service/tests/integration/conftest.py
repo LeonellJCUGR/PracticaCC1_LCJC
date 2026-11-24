@@ -1,4 +1,4 @@
-"""Fixtures comunes: la app se levanta contra SQLite en memoria."""
+"""Fixtures comunes: La app se levanta desde SQLite en memoria."""
 
 from __future__ import annotations
 

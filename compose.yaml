@@ -3,12 +3,13 @@
 #   cp .env.example .env
 #   docker compose up -d --build
 #
-# Arquitectura (7 contenedores):
+# Arquitectura (7 contenedores-se incluyó API Gateway y Database-per-Service con contenedor propio):
+# Es decir, la contenerización ya no es sólo lógica, sino física.
 #   cliente -> api-gateway (único puerto publicado: http://localhost:${GATEWAY_PORT:-8080})
 #                ├── /api/v1/atracciones|temporadas|precios          -> catalog-service -> sqlserver-catalog
 #                └── /api/v1/reservas|disponibilidad|estadisticas    -> booking-service -> sqlserver-booking
-#   Un contenedor de SQL Server POR microservicio (database-per-service con aislamiento físico),
-#   cada uno inicializado por su db-init-* (tarea de un solo uso).
+#   Un contenedor de SQL Server por MICROSERVICIO (database-per-service con aislamiento físico),
+#   cada uno inicializado por su db-init-* (tarea de un sólo uso).
 #   Swagger: http://localhost:8080/catalog/docs  y  http://localhost:8080/booking/docs
 
 name: rutaticket
@@ -23,7 +24,7 @@ x-hardening: &hardening
   restart: unless-stopped
 
 x-sqlserver: &sqlserver
-  # Misma familia de motor que Azure SQL Database (paridad dev/prod, factor X).
+  # Misma familia de motor que Azure SQL Database
   image: mcr.microsoft.com/mssql/server:2022-latest
   platform: linux/amd64           # no hay imagen arm64; en Apple Silicon corre con Rosetta
   # Sin "ports": la BD no es accesible desde el host, solo desde su red interna.

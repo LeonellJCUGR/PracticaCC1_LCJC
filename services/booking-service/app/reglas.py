@@ -33,7 +33,7 @@ class ReglaNegocioError(Exception):
         self.detalle = detalle
 
 
-# ---------- RN-03: fechas y cantidad válidas ----------
+# RN-03: fechas y cantidad válidas
 
 
 def validar_compra(fecha_visita: date, cantidad: int, hoy: date) -> None:
@@ -55,7 +55,7 @@ def validar_compra(fecha_visita: date, cantidad: int, hoy: date) -> None:
         )
 
 
-# ---------- RN-02: control de aforo ----------
+# RN-02: control de aforo
 
 
 def plazas_libres(vendidas: int, aforo_diario: int) -> int:
@@ -69,7 +69,7 @@ def comprobar_aforo(vendidas: int, cantidad: int, aforo_diario: int, fecha: date
         raise ReglaNegocioError(409, "AFORO_COMPLETO", f"Solo {texto} para el {fecha.isoformat()}")
 
 
-# ---------- RN-04: cancelación ----------
+# RN-04: cancelación
 
 
 def limite_cancelacion(fecha_visita: date, tz) -> datetime:
@@ -90,7 +90,7 @@ def comprobar_cancelacion(estado: str, fecha_visita: date, ahora: datetime) -> N
         )
 
 
-# ---------- RN-05: validación de acceso ----------
+#  RN-05: validación de acceso
 
 
 def comprobar_validacion(estado: str, fecha_visita: date, hoy: date) -> None:
@@ -110,7 +110,7 @@ def generar_codigo() -> str:
     return "RT-" + "".join(secrets.choice(ALFABETO_CODIGO) for _ in range(LONGITUD_CODIGO))
 
 
-# ---------- CU-07: estadísticas ----------
+# CU-07: estadísticas
 
 
 @dataclass(frozen=True)

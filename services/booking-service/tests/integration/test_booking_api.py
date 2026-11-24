@@ -13,7 +13,7 @@ def test_health(client):
     assert client.get("/health/ready").status_code == 200
 
 
-# ---------- CU-04: compra ----------
+# CU-04: compra
 
 
 def test_compra_confirmada(comprar):
@@ -90,7 +90,7 @@ def test_catalogo_caido_503(comprar, catalogo):
     assert respuesta.json()["error"] == "CATALOGO_NO_DISPONIBLE"
 
 
-# ---------- CU-05: consulta y cancelación ----------
+# CU-05: consulta y cancelación
 
 
 def test_consultar_reserva(client, comprar):
@@ -126,7 +126,7 @@ def test_cancelar_inexistente_404(client):
     assert client.post("/api/v1/reservas/RT-XXXXXX/cancelacion").status_code == 404
 
 
-# ---------- CU-06: validación ----------
+# CU-06: validación
 
 
 def test_validar_el_dia_de_la_visita(client, comprar, reloj):
@@ -158,7 +158,7 @@ def test_no_se_valida_una_cancelada(client, comprar, reloj):
     assert respuesta.json()["error"] == "RESERVA_CANCELADA"
 
 
-# ---------- CU-07: estadísticas ----------
+# CU-07: estadísticas
 
 
 def test_estadisticas_excluyen_canceladas(client, comprar):

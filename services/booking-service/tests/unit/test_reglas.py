@@ -22,7 +22,7 @@ def _error(funcion, *args) -> ReglaNegocioError:
     return info.value
 
 
-# ---------- RN-03 ----------
+# RN-03
 
 
 @pytest.mark.parametrize("dias", [0, 1, 90])
@@ -45,7 +45,7 @@ def test_cantidad_fuera_de_rango(cantidad):
     assert _error(reglas.validar_compra, HOY, cantidad, HOY).error == "CANTIDAD_NO_VALIDA"
 
 
-# ---------- RN-02 ----------
+# RN-02
 
 
 def test_aforo_justo_se_permite():
@@ -66,7 +66,7 @@ def test_plazas_libres_nunca_negativas():
     assert reglas.plazas_libres(10, 5) == 0
 
 
-# ---------- RN-04 ----------
+# RN-04
 
 
 def test_cancelacion_justo_en_el_limite():
@@ -89,7 +89,7 @@ def test_solo_se_cancelan_confirmadas(estado):
     assert error.error == "RESERVA_NO_CANCELABLE"
 
 
-# ---------- RN-05 ----------
+# RN-05
 
 
 def test_validacion_el_dia_de_la_visita():
@@ -115,7 +115,7 @@ def test_formato_del_codigo():
     assert len(codigos) > 190  # prácticamente sin colisiones
 
 
-# ---------- CU-07 ----------
+# CU-07
 
 
 def test_agregar_estadisticas():

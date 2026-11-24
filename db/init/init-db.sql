@@ -1,6 +1,6 @@
--- Inicialización idempotente de UNA instancia de SQL Server (docker compose).
+-- Inicialización de una instancia de SQL Server (docker compose).
 -- Cada microservicio tiene su propio contenedor de SQL Server (database-per-service con
--- aislamiento físico); este mismo script se ejecuta una vez contra cada instancia.
+-- aislamiento físico); este mismo script se ejecuta una vez por cada instancia.
 --
 -- Variables sqlcmd (las pasa el contenedor db-init-* con -v):
 --   $(DB_NAME)       nombre de la base de datos      (catalog_db | booking_db)
