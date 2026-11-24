@@ -1,0 +1,21 @@
+# Configuración de Ruff (linter + formateador) para todo el repositorio.
+target-version = "py312"
+line-length = 100
+src = ["services/catalog-service", "services/booking-service"]
+
+[lint]
+select = [
+  "E", "W",   # pycodestyle
+  "F",        # pyflakes
+  "I",        # orden de imports
+  "B",        # bugbear
+  "UP",       # pyupgrade
+  "SIM",      # simplificaciones
+  "C4",       # comprehensions
+  "RUF",      # reglas propias de ruff
+]
+# Lo siguiente ignora textos en español en todo el proyecto: tildes, "ñ" y signos tipográficos de apertura "¿" o "¡" son intencionados.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[lint.isort]
+known-first-party = ["app"]

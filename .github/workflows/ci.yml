@@ -1,0 +1,245 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # En PRs se cancela la ejecución anterior; en main no, para no interrumpir publicaciones.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PYTHON_VERSION: "3.12"
+  RUFF_VERSION: "0.16.9"
+
+jobs:
+  # ------------------------------------------------------------------
+  # 1. Calidad: linter de Python, linter de Dockerfiles y validación del compose
+  # ------------------------------------------------------------------
+  lint:
+    name: Lint (ruff, hadolint, compose)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Ruff (lint + formato)
+        run: |
+          pip install "ruff==${RUFF_VERSION}"
+          ruff check --output-format=github .
+          ruff format --check .
+
+      - name: Hadolint catalog-service
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: services/catalog-service/Dockerfile
+          config: .hadolint.yaml
+
+      - name: Hadolint booking-service
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: services/booking-service/Dockerfile
+          config: .hadolint.yaml
+
+      - name: Hadolint api-gateway
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: gateway/Dockerfile
+          config: .hadolint.yaml
+
+      - name: Validar compose.yaml
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+
+  # ------------------------------------------------------------------
+  # 2. Pruebas unitarias y de integración (API + persistencia) por servicio
+  # ------------------------------------------------------------------
+  test:
+    name: Tests ${{ matrix.service }}
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [catalog-service, booking-service]
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: services/${{ matrix.service }}/requirements*.txt
+
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+
+      - name: Pruebas unitarias
+        run: pytest tests/unit --cov=app --cov-report=term-missing
+
+      - name: Pruebas de integración
+        run: pytest tests/integration --cov=app --cov-append --cov-report=term-missing
+
+  # ------------------------------------------------------------------
+  # 3. Construcción de las imágenes (se guardan como artefacto para probarlas y publicarlas)
+  # ------------------------------------------------------------------
+  build:
+    name: Build ${{ matrix.service }}
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: catalog-service
+            context: services/catalog-service
+          - service: booking-service
+            context: services/booking-service
+          - service: api-gateway
+            context: gateway
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Metadatos OCI (revisión, fecha, versión)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: rutaticket-${{ matrix.service }}
+
+      - name: Construir imagen
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          tags: rutaticket-${{ matrix.service }}:ci
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=docker,dest=${{ runner.temp }}/${{ matrix.service }}.tar
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ matrix.service }}
+          path: ${{ runner.temp }}/${{ matrix.service }}.tar
+          retention-days: 1
+
+  # ------------------------------------------------------------------
+  # 4. Pruebas de integración de sistema sobre el clúster de docker compose
+  #    (imágenes recién construidas + dos instancias reales de SQL Server)
+  # ------------------------------------------------------------------
+  e2e:
+    name: Tests de integración (docker compose)
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_PREFIX: rutaticket
+      IMAGE_TAG: ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: image-*
+          path: ${{ runner.temp }}/images
+          merge-multiple: true
+
+      - name: Cargar imágenes
+        run: for f in "${{ runner.temp }}"/images/*.tar; do docker load --input "$f"; done
+
+      - name: Levantar el entorno
+        run: |
+          cp .env.example .env
+          docker compose up -d --no-build
+          # Todo entra por el api-gateway (único puerto publicado)
+          for url in http://localhost:8080/health http://localhost:8080/catalog/health/ready http://localhost:8080/booking/health/ready; do
+            curl --silent --show-error --fail --retry 60 --retry-delay 5 --retry-all-errors \
+              "$url"
+            echo
+          done
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Ejecutar pruebas
+        run: |
+          pip install -r tests/e2e/requirements.txt
+          pytest tests/e2e -v
+
+      - name: Logs de los contenedores
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Parar el entorno
+        if: always()
+        run: docker compose down --volumes
+
+  # ------------------------------------------------------------------
+  # 5. Publicación en GitHub Container Registry (solo push a main o tags vX.Y.Z)
+  #    Se publica exactamente la imagen que ha superado las pruebas.
+  # ------------------------------------------------------------------
+  publish:
+    name: Publicar ${{ matrix.service }} en GHCR
+    needs: e2e
+    # Solo se publica desde main o desde un tag de versión, nunca desde un pull request.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [catalog-service, booking-service, api-gateway]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: image-${{ matrix.service }}
+          path: ${{ runner.temp }}
+
+      - name: Cargar imagen
+        run: docker load --input "${{ runner.temp }}/${{ matrix.service }}.tar"
+
+      - name: Propietario en minúsculas (GHCR no admite mayúsculas)
+        id: owner
+        run: echo "name=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Calcular etiquetas (hash del commit / versión semántica)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.owner.outputs.name }}/rutaticket-${{ matrix.service }}
+          tags: |
+            type=sha,format=short
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Etiquetar y publicar
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          while read -r tag; do
+            [ -z "$tag" ] && continue
+            docker tag "rutaticket-${{ matrix.service }}:ci" "$tag"
+            docker push "$tag"
+          done <<< "$TAGS"

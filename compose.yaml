@@ -1,0 +1,190 @@
+# RutaTicket - entorno local completo con un único comando:
+#
+#   cp .env.example .env
+#   docker compose up -d --build
+#
+# Arquitectura (7 contenedores-se incluyó API Gateway y Database-per-Service con contenedor propio):
+# Es decir, la contenerización ya no es sólo lógica, sino física.
+#   cliente -> api-gateway (único puerto publicado: http://localhost:${GATEWAY_PORT:-8080})
+#                ├── /api/v1/atracciones|temporadas|precios          -> catalog-service -> sqlserver-catalog
+#                └── /api/v1/reservas|disponibilidad|estadisticas    -> booking-service -> sqlserver-booking
+#   Un contenedor de SQL Server por MICROSERVICIO (database-per-service con aislamiento físico),
+#   cada uno inicializado por su db-init-* (tarea de un sólo uso).
+#   Swagger: http://localhost:8080/catalog/docs  y  http://localhost:8080/booking/docs
+
+name: rutaticket
+
+# ---------- Plantillas reutilizables (anclas YAML) ----------
+
+x-hardening: &hardening
+  read_only: true                 # sistema de ficheros inmutable
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+
+x-sqlserver: &sqlserver
+  # Misma familia de motor que Azure SQL Database
+  image: mcr.microsoft.com/mssql/server:2022-latest
+  platform: linux/amd64           # no hay imagen arm64; en Apple Silicon corre con Rosetta
+  # Sin "ports": la BD no es accesible desde el host, solo desde su red interna.
+  healthcheck:
+    test:
+      - CMD-SHELL
+      - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -b -Q "SELECT 1" -o /dev/null
+    interval: 10s
+    timeout: 5s
+    retries: 15
+    start_period: 30s
+  restart: unless-stopped
+
+x-db-init: &db-init
+  # Tarea de un solo uso: crea la BD y el login del microservicio y termina (exit 0).
+  image: mcr.microsoft.com/mssql/server:2022-latest
+  platform: linux/amd64
+  volumes:
+    - ./db/init:/init:ro
+  restart: "no"
+
+services:
+  # ================= Base de datos de catalog-service =================
+  sqlserver-catalog:
+    <<: *sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${CATALOG_SA_PASSWORD:?Define CATALOG_SA_PASSWORD en .env}
+      MSSQL_MEMORY_LIMIT_MB: ${MSSQL_MEMORY_LIMIT_MB:-1536}
+    volumes:
+      - sqlserver-catalog-data:/var/opt/mssql   # los datos sobreviven a down/up
+    networks: [catalog-data]
+
+  db-init-catalog:
+    <<: *db-init
+    depends_on:
+      sqlserver-catalog:
+        condition: service_healthy
+    environment:
+      SQLCMDPASSWORD: ${CATALOG_SA_PASSWORD:?}
+    entrypoint:
+      - /opt/mssql-tools18/bin/sqlcmd
+      - -S
+      - sqlserver-catalog
+      - -U
+      - sa
+      - -C
+      - -b
+      - -i
+      - /init/init-db.sql
+      - -v
+      - DB_NAME=catalog_db
+      - APP_LOGIN=catalog_app
+      - APP_PASSWORD=${CATALOG_DB_PASSWORD:?Define CATALOG_DB_PASSWORD en .env}
+    networks: [catalog-data]
+
+  # ================= Base de datos de booking-service =================
+  sqlserver-booking:
+    <<: *sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${BOOKING_SA_PASSWORD:?Define BOOKING_SA_PASSWORD en .env}
+      MSSQL_MEMORY_LIMIT_MB: ${MSSQL_MEMORY_LIMIT_MB:-1536}
+    volumes:
+      - sqlserver-booking-data:/var/opt/mssql
+    networks: [booking-data]
+
+  db-init-booking:
+    <<: *db-init
+    depends_on:
+      sqlserver-booking:
+        condition: service_healthy
+    environment:
+      SQLCMDPASSWORD: ${BOOKING_SA_PASSWORD:?}
+    entrypoint:
+      - /opt/mssql-tools18/bin/sqlcmd
+      - -S
+      - sqlserver-booking
+      - -U
+      - sa
+      - -C
+      - -b
+      - -i
+      - /init/init-db.sql
+      - -v
+      - DB_NAME=booking_db
+      - APP_LOGIN=booking_app
+      - APP_PASSWORD=${BOOKING_DB_PASSWORD:?Define BOOKING_DB_PASSWORD en .env}
+    networks: [booking-data]
+
+  # ================= Microservicios =================
+  catalog-service:
+    <<: *hardening
+    build: ./services/catalog-service
+    image: ${IMAGE_PREFIX:-rutaticket}-catalog-service:${IMAGE_TAG:-local}
+    depends_on:
+      db-init-catalog:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: "mssql+pyodbc://catalog_app:${CATALOG_DB_PASSWORD}@sqlserver-catalog:1433/catalog_db?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes"
+      ROOT_PATH: /catalog            # prefijo con el que lo publica el gateway (Swagger)
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    # Sin "ports": solo es accesible a través del api-gateway.
+    networks: [services, catalog-data]
+    # healthcheck: heredado del HEALTHCHECK del Dockerfile (GET /health)
+
+  booking-service:
+    <<: *hardening
+    build: ./services/booking-service
+    image: ${IMAGE_PREFIX:-rutaticket}-booking-service:${IMAGE_TAG:-local}
+    depends_on:
+      db-init-booking:
+        condition: service_completed_successfully
+      catalog-service:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "mssql+pyodbc://booking_app:${BOOKING_DB_PASSWORD}@sqlserver-booking:1433/booking_db?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes"
+      # Llamada interna (east-west) directa a catalog-service, sin pasar por el gateway.
+      CATALOG_SERVICE_URL: http://catalog-service:8000
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Madrid}
+      ROOT_PATH: /booking
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    networks: [services, booking-data]
+
+  # ================= API Gateway =================
+  api-gateway:
+    <<: *hardening
+    build: ./gateway
+    image: ${IMAGE_PREFIX:-rutaticket}-api-gateway:${IMAGE_TAG:-local}
+    depends_on:
+      catalog-service:
+        condition: service_healthy
+      booking-service:
+        condition: service_healthy
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"   # ÚNICO puerto publicado de todo el sistema
+    networks: [edge, services]
+    # healthcheck: heredado del HEALTHCHECK del Dockerfile (GET /health)
+
+networks:
+  edge:
+    # Única red con salida al host: solo el api-gateway publica su puerto aquí.
+    driver: bridge
+  services:
+    # Red interna de aplicación: gateway -> microservicios y booking -> catalog (REST).
+    driver: bridge
+    internal: true
+  catalog-data:
+    # Solo catalog-service llega a su BD. internal: sin Internet ni acceso desde el host.
+    driver: bridge
+    internal: true
+  booking-data:
+    # Solo booking-service llega a su BD: no puede ver la BD de catalog (ni al revés).
+    driver: bridge
+    internal: true
+
+volumes:
+  sqlserver-catalog-data:
+    name: rutaticket-sqlserver-catalog-data
+  sqlserver-booking-data:
+    name: rutaticket-sqlserver-booking-data

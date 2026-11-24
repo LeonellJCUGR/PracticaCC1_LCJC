@@ -1,0 +1,9 @@
+# Configuración de hadolint (linter de Dockerfiles)
+# Hadolint: sirve para que los Dockerfiles sigan las mejores prácticas
+failure-threshold: warning
+ignored:
+  # DL3008: Se omite a propósito para recibir los parches de
+  # seguridad de Debian en cada build; la reproducibilidad lo brinda la imagen base fijada.
+  # Esta regla salta una advertenia cuando el archivo Dockerfile usa el comando
+  # "apt-get install" sin especificar la versión exacta del paquete que quiere instalar.
+  - DL3008
