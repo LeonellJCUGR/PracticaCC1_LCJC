@@ -9,10 +9,10 @@
 #    sin compilar. Se fija bookworm (Debian 12) porque es una versión soportada por el
 #    repositorio de paquetes de Microsoft.
 
-ARG PYTHON_IMAGE=python:3.12-slim-bookworm
+
 
 # ---------- Etapa 1: dependencias Python en un entorno virtual aislado ----------
-FROM ${PYTHON_IMAGE} AS builder
+FROM python:3.12-slim-bookworm AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -27,7 +27,7 @@ COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # ---------- Etapa 2: clave del repositorio de Microsoft (curl/gpg no llegan a runtime) ----------
-FROM ${PYTHON_IMAGE} AS msrepo
+FROM python:3.12-slim-bookworm AS msrepo
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update \
@@ -37,7 +37,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # ---------- Etapa 3: imagen final de ejecución ----------
-FROM ${PYTHON_IMAGE} AS runtime
+FROM python:3.12-slim-bookworm AS runtime
 
 LABEL org.opencontainers.image.title="rutaticket-catalog-service" \
       org.opencontainers.image.description="RutaTicket: catálogo de atractivos y precios por temporada" \

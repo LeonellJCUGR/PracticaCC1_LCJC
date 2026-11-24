@@ -5,17 +5,17 @@
 #    y escuchando en un puerto no privilegiado (8080).
 #  - Variante Alpine (aprox. 20 MB): el gateway no necesita la librería glibc ni Python, solo NGINX.
 
-ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:1.27-alpine
+
 
 # Etapa 1: validación de la configuración ----------
 # Si gateway.conf tiene un error de sintaxis, la construcción de la imagen falla aquí
 # (y por tanto el CI), en lugar de fallar al arrancar el contenedor.
-FROM ${NGINX_IMAGE} AS validate
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS validate
 COPY nginx/gateway.conf /etc/nginx/conf.d/default.conf
 RUN nginx -t
 
 # Etapa 2: imagen final de ejecución ----------
-FROM ${NGINX_IMAGE} AS runtime
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
 
 LABEL org.opencontainers.image.title="rutaticket-api-gateway" \
       org.opencontainers.image.description="RutaTicket: API Gateway (NGINX) que enruta hacia catalog-service y booking-service" \
